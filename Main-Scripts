@@ -744,24 +744,26 @@ local RunService=game:GetService("RunService")
 local Lighting=game:GetService("Lighting")
 
 local function makeTrail(part)
-    local att0=Instance.new("Attachment",part)
-    local att1=Instance.new("Attachment",part)
-    att1.Position=Vector3.new(0,0.5,0)
-    local trail=Instance.new("Trail")
-    trail.Attachment0=att0
-    trail.Attachment1=att1
-    trail.Color=ColorSequence.new(Color3.fromRGB(0,255,255))
-    trail.FaceCamera=true
-    trail.LightEmission=300
-    trail.LightInfluence=300
-    trail.Texture="rbxassetid://10466997318"
-    trail.TextureMode=Enum.TextureMode.Static
-    trail.TextureLength=10
-    trail.Lifetime=0.5
-    trail.MinLength=0.1
-    trail.MaxLength=0
-    trail.WidthScale=NumberSequence.new(0,1,0)
-    trail.Parent=part
+    for i=1,80 do
+        local att0=Instance.new("Attachment",part)
+        local att1=Instance.new("Attachment",part)
+        att1.Position=Vector3.new(0,0.5,0)
+        local trail=Instance.new("Trail")
+        trail.Attachment0=att0
+        trail.Attachment1=att1
+        trail.Color=ColorSequence.new(Color3.fromRGB(0,255,255))
+        trail.FaceCamera=true
+        trail.LightEmission=300
+        trail.LightInfluence=300
+        trail.Texture="rbxassetid://10466997318"
+        trail.TextureMode=Enum.TextureMode.Static
+        trail.TextureLength=10
+        trail.Lifetime=0.5
+        trail.MinLength=0.1
+        trail.MaxLength=0
+        trail.WidthScale=NumberSequence.new(0,1,0)
+        trail.Parent=part
+    end
 end
 
 local function setup(character)
