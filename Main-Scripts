@@ -743,7 +743,7 @@ local player=game.Players.LocalPlayer
 local RunService=game:GetService("RunService")
 local Lighting=game:GetService("Lighting")
 
-local function makeTrail(part)
+local function makeTrails(part)
     for i=1,80 do
         local att0=Instance.new("Attachment",part)
         local att1=Instance.new("Attachment",part)
@@ -779,7 +779,7 @@ local function setup(character)
     spotlight.Shadows=true
     for _,part in ipairs(character:GetDescendants()) do
         if part:IsA("BasePart") then
-            makeTrail(part)
+            makeTrails(part)
         end
     end
     RunService.Heartbeat:Connect(function()
