@@ -1,113 +1,216 @@
-local Tool = script.Parent
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
 
-Tool.Equipped:Connect(function()
+local remote = ReplicatedStorage:WaitForChild("BigEffectRemote")
 
-local sound = game.ReplicatedStorage:WaitForChild("Sounds"):WaitForChild("Move1"):Clone()
-sound.Parent = workspace
-sound:Play()
-sound.Ended:Connect(function()
-    sound:Destroy()
-end)
+remote.OnServerEvent:Connect(function(player)
+    local character = player.Character or player.CharacterAdded:Wait()
+    local HRP = character:WaitForChild("HumanoidRootPart")
+    local humanoid = character:WaitForChild("Humanoid")
 
-    local Player = Players.LocalPlayer
-    local Character = Player.Character or Player.CharacterAdded:Wait()
-    local HRP = Character:WaitForChild("HumanoidRootPart")
+    HRP.Anchored = true
 
-    local initialEffects = {
-        game.ReplicatedStorage.Resources.HeadFirstFinisher.Tornado.tonado,
-        game.ReplicatedStorage.Resources.Tornado.Effects.SmallSpinEmit,
-        game.ReplicatedStorage.Resources.Tornado.Effects.MiddleSpinEmit,
-        game.ReplicatedStorage.Resources.Tornado.Effects.BigSpinEmit,
-        game.ReplicatedStorage.Resources.SplitSecond.FlowerBlastNew.FlowerBlast.Windy,
-        game.ReplicatedStorage.Resources.Fang.RockExplode.GoodSmoke3
-    }
+    task.spawn(function()
+        local animations = {
+            {id = "rbxassetid://10478338114", duration = 0.4},
+            {id = "rbxassetid://112220709701439", duration = 1.8}
+        }
+        local animator = humanoid:FindFirstChildWhichIsA("Animator") or Instance.new("Animator", humanoid)
+        for i, animData in ipairs(animations) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = animData.id
+            local track = animator:LoadAnimation(anim)
+            track:Play()
+            task.wait(animData.duration)
+            track:Stop()
+            if i == #animations then
+                local repeatAnim = Instance.new("Animation")
+                repeatAnim.AnimationId = animations[1].id
+                local repeatTrack = animator:LoadAnimation(repeatAnim)
+                repeatTrack:Play()
+                task.wait(0.4)
+                repeatTrack:Stop()
+            end
+        end
+    end)
 
-    local function EmitParticles(effect, amount)
+    local function EmitParticlesFrom(effect, amount, enable)
         local clone = effect:Clone()
         clone.Parent = HRP
         for _, child in ipairs(clone:GetChildren()) do
             if child:IsA("ParticleEmitter") then
-                child.Enabled = true
                 child:Emit(amount)
+                child.Enabled = enable
             end
         end
         return clone
     end
 
-    local activeEffects = {}
-    for _, effect in ipairs(initialEffects) do
-        table.insert(activeEffects, EmitParticles(effect, 5))
+    local effect1 = EmitParticlesFrom(ReplicatedStorage.Resources.Blackholevfx.Different.Different.expl.ground, 15, true)
+
+    task.wait(0.4)
+    local floorEffect
+    task.spawn(function()
+        task.wait(1.6)
+        floorEffect = ReplicatedStorage.Resources.SunsetEffects.Floor.Floor.Attachment:Clone()
+        floorEffect.Parent = HRP
+        floorEffect.WorldPosition = HRP.Position + Vector3.new(0, -3, 0)
+        for _, p in ipairs(floorEffect:GetChildren()) do
+            if p:IsA("ParticleEmitter") then
+                p:Emit(15)
+                p.Enabled = true
+            end
+        end
+        EmitParticlesFrom(ReplicatedStorage.Resources.RobotStuff.ArmCharge.Charge.Start, 1, false)
+    end)
+
+    local effect2 = EmitParticlesFrom(ReplicatedStorage.Resources.OldPirate.BlastClutch.Charging.Part.Attachment, 15, true)
+    local effect3 = EmitParticlesFrom(ReplicatedStorage.Resources.Blackholevfx.WindInwards.WindInwards.High, 15, true)
+
+    task.wait(1.8)
+    effect1:Destroy()
+    effect2:Destroy()
+    effect3:Destroy()
+    if floorEffect then
+        floorEffect:Destroy()
+        floorEffect = nil
+    end
+    task.delay(1.1, function()
+        HRP.Anchored = false
+    end)
+
+    local Test = ReplicatedStorage.Resources.FiveSeasonsFX.JumpFX.JumpFX.BurnMark
+    local burnEffect = Test:Clone()
+    burnEffect.Parent = HRP
+    burnEffect.WorldPosition = burnEffect.WorldPosition + Vector3.new(0, -5.7, 0)
+    for _, child in ipairs(burnEffect:GetChildren()) do
+        if child:IsA("ParticleEmitter") then
+            child:Emit(1)
+        end
     end
 
     local hitbox = Instance.new("Part")
     hitbox.Size = Vector3.new(40, 40, 40)
     hitbox.CFrame = HRP.CFrame
-    hitbox.Transparency = 1
     hitbox.Anchored = true
     hitbox.CanCollide = false
+    hitbox.Transparency = 1
     hitbox.Parent = workspace
 
-    local affectedHumanoids = {}
-    local dtAccumulator = 0
-
-    local dmgConnection
-    dmgConnection = RunService.Stepped:Connect(function(_, dt)
-        dtAccumulator = dtAccumulator + dt
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("Humanoid") and obj.Parent ~= Character then
-                local torso = obj.Parent:FindFirstChild("HumanoidRootPart")
-                if torso and (torso.Position - hitbox.Position).Magnitude <= 20 then
-                    if not affectedHumanoids[obj] then
-                        affectedHumanoids[obj] = torso
-                        torso.Anchored = true
-                    end
-                    torso.CFrame = torso.CFrame + Vector3.new(0, dt * 3, 0)
-                end
+    for _, part in ipairs(workspace:GetPartsInPart(hitbox)) do
+        local char = part:FindFirstAncestorOfClass("Model")
+        if char and char ~= character and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 then
+                hum:TakeDamage(30)
             end
-        end
-        if dtAccumulator >= 0.3 then
-            for humanoid, _ in pairs(affectedHumanoids) do
-                humanoid:TakeDamage(0.4)
+            local hrpTarget = char:FindFirstChild("HumanoidRootPart")
+            if hrpTarget then
+                local bv = Instance.new("BodyVelocity")
+                bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+                local randomDir = (hrpTarget.Position - HRP.Position).Unit + Vector3.new(math.random(-5,5)*0.1,0,math.random(-5,5)*0.1)
+                bv.Velocity = randomDir.Unit * math.random(35,50)
+                bv.Parent = hrpTarget
+                Debris:AddItem(bv, 0.3)
             end
-            dtAccumulator = 0
-        end
-    end)
-
-    wait(1)
-
-    for _, effect in ipairs(activeEffects) do
-        if effect and effect.Parent then
-            effect:Destroy()
         end
     end
 
-    dmgConnection:Disconnect()
     hitbox:Destroy()
 
-    local finalEffect = game.ReplicatedStorage.Resources.IceSpear.explode.explode
-    local explosionClone = finalEffect:Clone()
-    explosionClone.Parent = HRP
-    for _, child in ipairs(explosionClone:GetChildren()) do
-        if child:IsA("ParticleEmitter") then
-            child.Enabled = true
-            child:Emit(15)
+    local function getGroundMaterialAndColor(origin)
+        local rayParams = RaycastParams.new()
+        rayParams.FilterDescendantsInstances = {character}
+        rayParams.FilterType = Enum.RaycastFilterType.Exclude
+        local result = workspace:Raycast(origin, Vector3.new(0, -100, 0), rayParams)
+        if result and result.Instance and not Players:GetPlayerFromCharacter(result.Instance.Parent) then
+            return result.Material, result.Instance.Color
+        else
+            return Enum.Material.Slate, Color3.fromRGB(100, 100, 100)
         end
     end
 
-    for humanoid, torso in pairs(affectedHumanoids) do
-        if humanoid.Parent and torso then
-            torso.Anchored = false
-            local direction = (torso.Position - HRP.Position).Unit
-            if direction.Magnitude == 0 then direction = Vector3.new(0, 1, 0) end
-            local bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.Velocity = direction * 30 + Vector3.new(0, 20, 0)
-            bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-            bodyVelocity.Parent = torso
-            humanoid:TakeDamage(10)
-            Debris:AddItem(bodyVelocity, 0.5)
+    for i = 1, 10 do
+        local rock = Instance.new("Part")
+        rock.Size = Vector3.new(2, 2, 2)
+        rock.Anchored = false
+        rock.CanCollide = true
+        rock.Position = HRP.Position + Vector3.new(0, 5, 0)
+        local mat, col = getGroundMaterialAndColor(HRP.Position)
+        rock.Material = mat
+        rock.Color = col
+        rock.Parent = workspace
+        local bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.new(math.random(-50,50), math.random(50,100), math.random(-50,50))
+        bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+        bv.Parent = rock
+        Debris:AddItem(bv, 0.5)
+        task.delay(6, function()
+            if rock.Parent then
+                local startSize = rock.Size
+                local startTransparency = rock.Transparency
+                local t = 0
+                local conn
+                conn = RunService.Heartbeat:Connect(function(dt)
+                    if rock.Parent then
+                        t = t + dt
+                        local alpha = math.clamp(t / 2, 0, 1)
+                        rock.Size = startSize:Lerp(Vector3.new(0,0,0), alpha)
+                        rock.Transparency = startTransparency + alpha
+                        if alpha >= 1 then
+                            rock:Destroy()
+                            conn:Disconnect()
+                        end
+                    else
+                        conn:Disconnect()
+                    end
+                end)
+            end
+        end)
+        Debris:AddItem(rock, 10)
+    end
+
+    local effectList = {
+        {ReplicatedStorage.Resources.Blackholevfx.Different.Different.expl,15,false},
+        {ReplicatedStorage.Resources.Blackholevfx.Different.Different.Attachment,15,false},
+        {ReplicatedStorage.Resources.FinalEffects.LastLand.Center,15,false},
+        {ReplicatedStorage.Resources.MonsterAwaken.OtherVfx.Slam1.Part.moreparticle,15,false},
+        {ReplicatedStorage.Resources.WWFinisher.hit.hit.Attachment,5,false},
+        {ReplicatedStorage.Resources.LastBreath.FinalExplosion.ExpoFx.Impact,15,false},
+        {ReplicatedStorage.Resources.RobotFinisher.Hop.Hop.Impact,1,false},
+        {ReplicatedStorage.Resources.SunsetEffects.FloorAdjusted.Floor.Attachment,15,false},
+        {ReplicatedStorage.Resources.LastBreath.VictimGlint.Part.Attachment,15,false}
+    }
+    for _, data in ipairs(effectList) do
+        EmitParticlesFrom(data[1], data[2], data[3])
+    end
+
+    task.spawn(function()
+        player.CameraMinZoomDistance = 85
+        TweenService:Create(player, TweenInfo.new(2, Enum.EasingStyle.Sine), {CameraMinZoomDistance = 0.05}):Play()
+    end)
+
+    local FiveSeasonsFX = ReplicatedStorage.Resources.FiveSeasonsFX
+    local FSWhite = FiveSeasonsFX.FSWhite:Clone()
+    local FSBlack = FiveSeasonsFX.FSBlack:Clone()
+    FSWhite.Parent = game.Lighting
+    FSBlack.Parent = game.Lighting
+
+    for _, child in ipairs(player.PlayerGui:GetChildren()) do
+        if child.Name == "FXUi" then
+            child:Destroy()
         end
     end
+
+    FSWhite.Enabled = true
+    task.wait(0.035)
+    FSWhite.Enabled = false
+    FSBlack.Enabled = true
+    task.wait(0.035)
+    FSBlack.Enabled = false
+    FSWhite:Destroy()
+    FSBlack:Destroy()
 end)
