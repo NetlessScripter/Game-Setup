@@ -1,0 +1,100 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local Debris = game:GetService("Debris")
+
+local remote = ReplicatedStorage:WaitForChild("HitboxEvent")
+local canHit = {}
+
+remote.OnServerEvent:Connect(function(player)
+	local character = player.Character
+	if not character then return end
+	local humanoid = character:FindFirstChild("Humanoid")
+	local hrp = character:FindFirstChild("HumanoidRootPart")
+	if not humanoid or not hrp then return end
+	if canHit[player] then return end
+	canHit[player] = true
+
+	local animation = Instance.new("Animation")
+	animation.AnimationId = "rbxassetid://110361063508944"
+	local track = humanoid:LoadAnimation(animation)
+	track:Play()
+
+	task.spawn(function()
+		wait(0.3)
+		local JumpEffect = ReplicatedStorage.Resources.WWFinisher.jump.Attachment
+		local jumpClone = JumpEffect:Clone()
+		jumpClone.Parent = hrp
+		jumpClone.WorldPosition = jumpClone.WorldPosition - Vector3.new(0, 3, 0)
+		for _, child in ipairs(jumpClone:GetChildren()) do
+			if child:IsA("ParticleEmitter") then
+				child:Emit(15)
+				child.Enabled = false
+			end
+		end
+	end)
+
+	local sound1 = Instance.new("Sound")
+	sound1.SoundId = "rbxassetid://2891226332"
+	sound1.Volume = 2
+	sound1.Parent = hrp
+	sound1:Play()
+
+	local hitbox = Instance.new("Part")
+	hitbox.Size = Vector3.new(4, 4, 3)
+	hitbox.Transparency = 1
+	hitbox.Anchored = true
+	hitbox.CanCollide = false
+	hitbox.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
+	hitbox.Parent = Workspace
+
+	local triggered = false
+
+	hitbox.Touched:Connect(function(hit)
+		if triggered then return end
+		local victimModel
+		if hit.Parent:FindFirstChildOfClass("Humanoid") then
+			victimModel = hit.Parent
+		elseif hit == Workspace:FindFirstChild("Weakest Dummy") then
+			victimModel = hit
+		end
+		if victimModel and victimModel ~= character then
+			local victimHum = victimModel:FindFirstChildOfClass("Humanoid")
+			if victimHum then
+				triggered = true
+				local test1 = ReplicatedStorage.Resources.GrandFissureFinisher.PunchShockwave.Particletest.Attachment:Clone()
+				test1.Parent = hrp
+				for _, child in ipairs(test1:GetChildren()) do
+					if child:IsA("ParticleEmitter") then
+						child:Emit(15)
+						child.Enabled = false
+					end
+				end
+				local sound2 = Instance.new("Sound")
+				sound2.SoundId = "rbxassetid://423255147"
+				sound2.Volume = 2
+				sound2.Parent = victimModel:FindFirstChild("HumanoidRootPart") or victimModel.PrimaryPart or victimModel
+				sound2:Play()
+				victimHum:TakeDamage(8)
+				local bodyVelocity = Instance.new("BodyVelocity")
+				bodyVelocity.Velocity = (victimModel:GetPrimaryPartCFrame().Position - hrp.Position).Unit * 10 + Vector3.new(0,5,0)
+				bodyVelocity.MaxForce = Vector3.new(4000,4000,4000)
+				bodyVelocity.Parent = victimModel:FindFirstChild("HumanoidRootPart") or victimModel.PrimaryPart or victimModel
+				Debris:AddItem(bodyVelocity, 0.2)
+				local test2 = ReplicatedStorage.Resources.GrandFissureFinisher.PunchShockwave.Particle.Attachment:Clone()
+				test2.Parent = hrp
+				for _, child in ipairs(test2:GetChildren()) do
+					if child:IsA("ParticleEmitter") then
+						child:Emit(15)
+						child.Enabled = false
+					end
+				end
+				hitbox:Destroy()
+			end
+		end
+	end)
+
+	Debris:AddItem(hitbox, 0.3)
+	task.delay(5, function()
+		canHit[player] = false
+	end)
+end)
